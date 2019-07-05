@@ -6,6 +6,5 @@
 
 ### Building the wasm and js files
 
-- `emmake make tflite`
-
-Produces a `tflite.js` and `tflite.wasm` files in the current directory.
+- `emmake make`: produces a `tflite.js` and `tflite.wasm` files in the current directory.
+- `emmake make clean`: removes the generated output.
