@@ -1,0 +1,5 @@
+*.o
+/micro_speech_test
+tflite.js
+tflite.wasm
+tflite.wast

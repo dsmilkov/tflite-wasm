@@ -7,8 +7,6 @@ $(patsubst %.cc,%.o,$(patsubst %.c,%.o,$(SRCS)))
 CXXFLAGS += -O3 -DNDEBUG -std=c++11 -g -DTF_LITE_STATIC_MEMORY -DTF_LITE_DISABLE_X86_NEON -DTF_LITE_DISABLE_X86_NEON -I. -I./third_party/gemmlowp -I./third_party/flatbuffers/include -I./third_party/kissfft
 CCFLAGS +=  -DNDEBUG -g -DTF_LITE_STATIC_MEMORY -DTF_LITE_DISABLE_X86_NEON -DTF_LITE_DISABLE_X86_NEON -I. -I./third_party/gemmlowp -I./third_party/flatbuffers/include -I./third_party/kissfft
 
-LDFLAGS +=  -lm -framework Foundation -framework AudioToolbox
-
 %.o: %.cc
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
@@ -16,6 +14,12 @@ LDFLAGS +=  -lm -framework Foundation -framework AudioToolbox
 	$(CC) $(CCFLAGS) $(INCLUDES) -c $< -o $@
 
 micro_speech_test : $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJS)
+
+clean:
+	rm $(OBJS) micro_speech_test
+
+tflite: $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $(@).js $(OBJS)
 
 all: micro_speech_test
