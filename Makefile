@@ -26,17 +26,35 @@ tensorflow/lite/experimental/micro/examples/micro_speech/micro_features/yes_micr
 OBJS := \
 $(patsubst %.cc,%.o,$(patsubst %.c,%.o,$(SRCS)))
 
-CXXFLAGS += -O3 -DNDEBUG -std=c++11 -g -DTF_LITE_STATIC_MEMORY -DTF_LITE_DISABLE_X86_NEON -DTF_LITE_DISABLE_X86_NEON -I. -I./third_party/gemmlowp -I./third_party/flatbuffers/include -I./third_party/kissfft
-CCFLAGS +=  -DNDEBUG -g -DTF_LITE_STATIC_MEMORY -DTF_LITE_DISABLE_X86_NEON -DTF_LITE_DISABLE_X86_NEON -I. -I./third_party/gemmlowp -I./third_party/flatbuffers/include -I./third_party/kissfft
+CXXFLAGS += -DNDEBUG -std=c++11 -DTF_LITE_STATIC_MEMORY -DTF_LITE_DISABLE_X86_NEON -DTF_LITE_DISABLE_X86_NEON -I. -I./third_party/gemmlowp -I./third_party/flatbuffers/include -I./third_party/kissfft
+CCFLAGS +=  -DNDEBUG -DTF_LITE_STATIC_MEMORY -DTF_LITE_DISABLE_X86_NEON -DTF_LITE_DISABLE_X86_NEON -I. -I./third_party/gemmlowp -I./third_party/flatbuffers/include -I./third_party/kissfft
+
+ifdef DEPLOY
+  # Optimized.
+	# -g0 Exclude all debug info.
+	# -O3 Standard C/C++ optimization level.
+	# --llvm-lto 3 LLVM link-time optimization.
+	# --closure 1 Run closure compiler.
+	# -fno-rtti -fno-exceptions Do not handle exceptions.
+	# -s FILESYSTEM=0 Exclude file system support.
+	# -s ENVIRONMENT=web Run only on the web.
+	WASM_FLAGS := -g0 -O3 --llvm-lto 3 --closure 1 -fno-rtti -fno-exceptions -s FILESYSTEM=0 -s ENVIRONMENT=web
+else
+  # Development.
+	# -g4 Include all debug info.
+	# -O0 No optimization.
+	# -s FILESYSTEM=0 Exclude file system support.
+	WASM_FLAGS := -g4 -O0 -s FILESYSTEM=0
+endif
 
 %.o: %.cc
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(WASM_FLAGS) $(INCLUDES) -c $< -o $@
 
 %.o: %.c
-	$(CC) $(CCFLAGS) $(INCLUDES) -c $< -o $@
-	
+	$(CC) $(CCFLAGS) $(WASM_FLAGS) $(INCLUDES) -c $< -o $@
+
 tflite: $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $(@).js $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $(@).js $(OBJS) $(WASM_FLAGS)
 
 clean:
 	rm $(OBJS) tflite.*

@@ -36,6 +36,25 @@ limitations under the License.
 
 #include "tensorflow/lite/experimental/micro/debug_log.h"
 
+#include <emscripten.h>
 #include <cstdio>
 
-extern "C" void DebugLog(const char* s) { fprintf(stderr, "%s", s); }
+extern "C" void DebugLog(const char* s) {
+  EM_ASM_(
+      {
+        // Since console.log implicitly adds newline at the end of output,
+        // we have to accumulate the printed string and flush only when we
+        // see a '\n'.
+        if (typeof(logString) == 'undefined') {
+          logString = '';
+        }
+        var str = AsciiToString($0);
+        logString += str;
+        // Flush if the last character is '\n'.
+        if (str.endsWith('\n')) {
+          console.log(logString);
+          logString = '';
+        }
+      },
+      s);
+}
