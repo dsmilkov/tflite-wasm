@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <emscripten.h>
 #include "tensorflow/lite/experimental/micro/examples/micro_speech/micro_features/no_micro_features_data.h"
 #include "tensorflow/lite/experimental/micro/examples/micro_speech/micro_features/tiny_conv_micro_features_model_data.h"
 #include "tensorflow/lite/experimental/micro/examples/micro_speech/micro_features/yes_micro_features_data.h"
@@ -22,21 +23,15 @@ limitations under the License.
 #include "tensorflow/lite/schema/schema_generated.h"
 #include "tensorflow/lite/version.h"
 
-int main(int argc, char** argv) {
-  // Set up logging.
-  tflite::MicroErrorReporter micro_error_reporter;
-  tflite::ErrorReporter* error_reporter = &micro_error_reporter;
-
+extern "C" {
+EMSCRIPTEN_KEEPALIVE
+void load_model(unsigned char* model_bytes) {
+  tflite::MicroErrorReporter micro_reporter;
+  tflite::ErrorReporter* reporter = &micro_reporter;
   // Map the model into a usable data structure. This doesn't involve any
   // copying or parsing, it's a very lightweight operation.
-  const tflite::Model* model =
-      ::tflite::GetModel(g_tiny_conv_micro_features_model_data);
-  if (model->version() != TFLITE_SCHEMA_VERSION) {
-    error_reporter->Report(
-        "Model provided is schema version %d not equal "
-        "to supported version %d.\n",
-        model->version(), TFLITE_SCHEMA_VERSION);
-  }
+  const tflite::Model* model = tflite::GetModel(model_bytes);
+  reporter->Report("model version: %d", model->version());
 
   // This pulls in all the operation implementations we need.
   tflite::ops::micro::AllOpsResolver resolver;
@@ -49,32 +44,27 @@ int main(int argc, char** argv) {
 
   // Build an interpreter to run the model with.
   tflite::MicroInterpreter interpreter(model, resolver, &tensor_allocator,
-                                       error_reporter);
+                                       reporter);
 
   // Get information about the memory area to use for the model's input.
   TfLiteTensor* input = interpreter.input(0);
 
-  error_reporter->Report("%d,%d,%d,%d", input->dims->data[0],
-                         input->dims->data[1], input->dims->data[2],
-                         input->dims->data[3]);
-  //   TF_LITE_MICRO_EXPECT_NE(nullptr, input);
-  //   TF_LITE_MICRO_EXPECT_EQ(4, input->dims->size);
-  //   TF_LITE_MICRO_EXPECT_EQ(1, input->dims->data[0]);
-  //   TF_LITE_MICRO_EXPECT_EQ(49, input->dims->data[1]);
-  //   TF_LITE_MICRO_EXPECT_EQ(40, input->dims->data[2]);
+  reporter->Report("%d,%d,%d,%d", input->dims->data[0], input->dims->data[1],
+                   input->dims->data[2], input->dims->data[3]);
   //   TF_LITE_MICRO_EXPECT_EQ(kTfLiteUInt8, input->type);
-
   // Copy a spectrogram created from a .wav audio file of someone saying "Yes",
   // into the memory area used for the input.
-  const uint8_t* yes_features_data = g_yes_micro_f2e59fea_nohash_1_data;
+  // const uint8_t* features_data = g_yes_micro_f2e59fea_nohash_1_data;
+  // Uncomment to test with different input, from a recording of "No".
+  const uint8_t* features_data = g_no_micro_f9643d42_nohash_4_data;
   for (int i = 0; i < input->bytes; ++i) {
-    input->data.uint8[i] = yes_features_data[i];
+    input->data.uint8[i] = features_data[i];
   }
 
   // Run the model on this input and make sure it succeeds.
   TfLiteStatus invoke_status = interpreter.Invoke();
   if (invoke_status != kTfLiteOk) {
-    error_reporter->Report("Invoke failed\n");
+    reporter->Report("Invoke failed\n");
   }
   //   TF_LITE_MICRO_EXPECT_EQ(kTfLiteOk, invoke_status);
 
@@ -97,39 +87,10 @@ int main(int argc, char** argv) {
   uint8_t unknown_score = output->data.uint8[kUnknownIndex];
   uint8_t yes_score = output->data.uint8[kYesIndex];
   uint8_t no_score = output->data.uint8[kNoIndex];
-  //   TF_LITE_MICRO_EXPECT_GT(yes_score, silence_score);
+  reporter->Report("silence: %d\nunknown: %d\nyes: %d\nno: %d", silence_score,
+                   unknown_score, yes_score, no_score);
+  // TF_LITE_MICRO_EXPECT_GT(yes_score, silence_score);
   //   TF_LITE_MICRO_EXPECT_GT(yes_score, unknown_score);
   //   TF_LITE_MICRO_EXPECT_GT(yes_score, no_score);
-
-  // Now test with a different input, from a recording of "No".
-  const uint8_t* no_features_data = g_no_micro_f9643d42_nohash_4_data;
-  for (int i = 0; i < input->bytes; ++i) {
-    input->data.uint8[i] = no_features_data[i];
-  }
-
-  // Run the model on this "No" input.
-  invoke_status = interpreter.Invoke();
-  if (invoke_status != kTfLiteOk) {
-    error_reporter->Report("Invoke failed\n");
-  }
-  //   TF_LITE_MICRO_EXPECT_EQ(kTfLiteOk, invoke_status);
-
-  // Get the output from the model, and make sure it's the expected size and
-  // type.
-  output = interpreter.output(0);
-  //   TF_LITE_MICRO_EXPECT_EQ(2, output->dims->size);
-  //   TF_LITE_MICRO_EXPECT_EQ(1, output->dims->data[0]);
-  //   TF_LITE_MICRO_EXPECT_EQ(4, output->dims->data[1]);
-  //   TF_LITE_MICRO_EXPECT_EQ(kTfLiteUInt8, output->type);
-
-  // Make sure that the expected "No" score is higher than the other classes.
-  silence_score = output->data.uint8[kSilenceIndex];
-  unknown_score = output->data.uint8[kUnknownIndex];
-  yes_score = output->data.uint8[kYesIndex];
-  no_score = output->data.uint8[kNoIndex];
-  //   TF_LITE_MICRO_EXPECT_GT(no_score, silence_score);
-  //   TF_LITE_MICRO_EXPECT_GT(no_score, unknown_score);
-  //   TF_LITE_MICRO_EXPECT_GT(no_score, yes_score);
-
-  error_reporter->Report("Ran successfully");
 }
+}  // extern "C".
