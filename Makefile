@@ -27,10 +27,10 @@ OBJS := \
 $(patsubst %.cc,%.o,$(patsubst %.c,%.o,$(SRCS)))
 
 CXXFLAGS += -DNDEBUG -std=c++11 -DTF_LITE_STATIC_MEMORY -DTF_LITE_DISABLE_X86_NEON -DTF_LITE_DISABLE_X86_NEON -I. -I./third_party/gemmlowp -I./third_party/flatbuffers/include -I./third_party/kissfft
-CCFLAGS +=  -DNDEBUG -DTF_LITE_STATIC_MEMORY -DTF_LITE_DISABLE_X86_NEON -DTF_LITE_DISABLE_X86_NEON -I. -I./third_party/gemmlowp -I./third_party/flatbuffers/include -I./third_party/kissfft
+CCFLAGS += -DNDEBUG -DTF_LITE_STATIC_MEMORY -DTF_LITE_DISABLE_X86_NEON -DTF_LITE_DISABLE_X86_NEON -I. -I./third_party/gemmlowp -I./third_party/flatbuffers/include -I./third_party/kissfft
 
 ifdef DEPLOY
-  # Optimized.
+	# Optimized.
 	# -g0 Exclude all debug info.
 	# -O3 Standard C/C++ optimization level.
 	# --llvm-lto 3 LLVM link-time optimization.
@@ -40,7 +40,7 @@ ifdef DEPLOY
 	# -s ENVIRONMENT=web Run only on the web.
 	WASM_FLAGS := -g0 -O3 --llvm-lto 3 --closure 1 -fno-rtti -fno-exceptions -s FILESYSTEM=0 -s ENVIRONMENT=web
 else
-  # Development.
+	# Development.
 	# -g4 Include all debug info.
 	# -O0 No optimization.
 	# -s FILESYSTEM=0 Exclude file system support.
