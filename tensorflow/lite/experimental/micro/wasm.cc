@@ -23,31 +23,33 @@ limitations under the License.
 #include "tensorflow/lite/schema/schema_generated.h"
 #include "tensorflow/lite/version.h"
 
+tflite::MicroErrorReporter micro_reporter;
+tflite::ErrorReporter *reporter = &micro_reporter;
+const tflite::Model *model;
+// This pulls in all the operation implementations we need.
+tflite::ops::micro::AllOpsResolver resolver;
+tflite::SimpleTensorAllocator *tensor_allocator;
+tflite::MicroInterpreter *interpreter;
+
 extern "C" {
+
 EMSCRIPTEN_KEEPALIVE
-void load_model(unsigned char* model_bytes) {
-  tflite::MicroErrorReporter micro_reporter;
-  tflite::ErrorReporter* reporter = &micro_reporter;
+void load_model(uint8_t *model_bytes, const int tensor_arena_size) {
   // Map the model into a usable data structure. This doesn't involve any
   // copying or parsing, it's a very lightweight operation.
-  const tflite::Model* model = tflite::GetModel(model_bytes);
-  reporter->Report("model version: %d", model->version());
+  model = tflite::GetModel(model_bytes);
+  reporter->Report("Loaded model. Version: %d", model->version());
 
-  // This pulls in all the operation implementations we need.
-  tflite::ops::micro::AllOpsResolver resolver;
-
-  // Create an area of memory to use for input, output, and intermediate arrays.
-  const int tensor_arena_size = 10 * 1024;
-  uint8_t tensor_arena[tensor_arena_size];
-  tflite::SimpleTensorAllocator tensor_allocator(tensor_arena,
-                                                 tensor_arena_size);
+  uint8_t *tensor_arena = new uint8_t[tensor_arena_size];
+  tensor_allocator =
+      new tflite::SimpleTensorAllocator(tensor_arena, tensor_arena_size);
 
   // Build an interpreter to run the model with.
-  tflite::MicroInterpreter interpreter(model, resolver, &tensor_allocator,
-                                       reporter);
+  interpreter =
+      new tflite::MicroInterpreter(model, resolver, tensor_allocator, reporter);
 
   // Get information about the memory area to use for the model's input.
-  TfLiteTensor* input = interpreter.input(0);
+  TfLiteTensor *input = interpreter->input(0);
 
   reporter->Report("%d,%d,%d,%d", input->dims->data[0], input->dims->data[1],
                    input->dims->data[2], input->dims->data[3]);
@@ -56,13 +58,13 @@ void load_model(unsigned char* model_bytes) {
   // into the memory area used for the input.
   // const uint8_t* features_data = g_yes_micro_f2e59fea_nohash_1_data;
   // Uncomment to test with different input, from a recording of "No".
-  const uint8_t* features_data = g_no_micro_f9643d42_nohash_4_data;
+  const uint8_t *features_data = g_no_micro_f9643d42_nohash_4_data;
   for (int i = 0; i < input->bytes; ++i) {
     input->data.uint8[i] = features_data[i];
   }
 
   // Run the model on this input and make sure it succeeds.
-  TfLiteStatus invoke_status = interpreter.Invoke();
+  TfLiteStatus invoke_status = interpreter->Invoke();
   if (invoke_status != kTfLiteOk) {
     reporter->Report("Invoke failed\n");
   }
@@ -70,7 +72,7 @@ void load_model(unsigned char* model_bytes) {
 
   // Get the output from the model, and make sure it's the expected size and
   // type.
-  TfLiteTensor* output = interpreter.output(0);
+  TfLiteTensor *output = interpreter->output(0);
   //   TF_LITE_MICRO_EXPECT_EQ(2, output->dims->size);
   //   TF_LITE_MICRO_EXPECT_EQ(1, output->dims->data[0]);
   //   TF_LITE_MICRO_EXPECT_EQ(4, output->dims->data[1]);

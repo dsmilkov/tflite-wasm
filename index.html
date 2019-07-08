@@ -1,11 +1,15 @@
 <script src="tflite.js"></script>
 <script>
   'use strict';
+  // const res = fetch('mobilenet_v2_1.0_224.tflite');
   const res = fetch('micro_speech.tflite');
   const wasm = Module();
-  const load_model = wasm.cwrap('load_model', 'void', ['array']);
+  const load_model = wasm.cwrap('load_model', 'void', ['number', 'number']);
   wasm.onRuntimeInitialized = async () => {
     const bytes = new Uint8Array(await (await res).arrayBuffer());
-    load_model(bytes);
+    const offset = wasm._malloc(bytes.length);
+    wasm.HEAPU8.set(bytes, offset);
+    const tensorArenaSize = bytes.length * 3;
+    load_model(offset, tensorArenaSize);
   };
 </script>

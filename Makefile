@@ -28,7 +28,13 @@ $(patsubst %.cc,%.o,$(patsubst %.c,%.o,$(SRCS)))
 
 CXXFLAGS += -DNDEBUG -std=c++11 -DTF_LITE_STATIC_MEMORY -DTF_LITE_DISABLE_X86_NEON -DTF_LITE_DISABLE_X86_NEON -I. -I./third_party/gemmlowp -I./third_party/flatbuffers/include -I./third_party/kissfft
 CCFLAGS += -DNDEBUG -DTF_LITE_STATIC_MEMORY -DTF_LITE_DISABLE_X86_NEON -DTF_LITE_DISABLE_X86_NEON -I. -I./third_party/gemmlowp -I./third_party/flatbuffers/include -I./third_party/kissfft
-WASM_COMMON_FLAGS := -s 'DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[]' -s MODULARIZE=1 -s FILESYSTEM=0 -s 'EXTRA_EXPORTED_RUNTIME_METHODS=["cwrap"]'
+WASM_COMMON_FLAGS := \
+	-s 'DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=[]' \
+	-s MODULARIZE=1 \
+	-s FILESYSTEM=0 \
+	-s 'EXTRA_EXPORTED_RUNTIME_METHODS=["cwrap"]' \
+	-s ALLOW_MEMORY_GROWTH=1 \
+	# --memoryprofiler
 
 ifdef DEPLOY
 	# Optimized.

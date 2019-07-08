@@ -14,6 +14,7 @@
   "editor.insertSpaces": true,
   "editor.rulers": [80],
   "editor.detectIndentation": false,
+  "editor.defaultFormatter": "xaver.clang-format",
   "clang-format.style": "Google",
   "files.associations": {
     "cstdio": "cpp"
